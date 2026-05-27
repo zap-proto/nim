@@ -1,4 +1,7 @@
 # capnp.nim
+
+> **Docs:** [ZAP Nim SDK](https://zap-proto.dev/docs/sdks) · part of the [ZAP Protocol](https://zap-proto.io)
+
 Cap'n Proto bindings for Nim
 
 **WARNING: the project is not actively maintained**
