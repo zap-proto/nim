@@ -1,6 +1,6 @@
-import capnp, capnp/gensupport, collections/iface
+import zap, zap/gensupport, collections/iface
 
-# file: caprpc/rpc.capnp
+# file: caprpc/rpc.zap
 
 type
   MessageKind* {.pure.} = enum

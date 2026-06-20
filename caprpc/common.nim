@@ -1,5 +1,5 @@
 import collections/iface, collections, collections/pprint
-import caprpc/rpcschema, capnp
+import caprpc/rpcschema, zap
 import reactor, macros, typetraits
 
 type
@@ -204,7 +204,7 @@ proc gcDestroyingWrapper*[T](cap: T, destroyCallback: proc()): T =
 # testCopy
 
 proc testCopy*[T](t: T) =
-  ## Test if ``t`` serializes and unserialized correctly. Useful for debugging capnp.nim.
+  ## Test if ``t`` serializes and unserialized correctly. Useful for debugging zap.nim.
   let data = packPointerIgnoringCaps(t)
   echo data.encodeHex
   let unpacker = newUnpackerFlat(data)

@@ -1,4 +1,4 @@
-import booldef, capnp/pack, capnp/unpack
+import booldef, zap/pack, zap/unpack
 
 let p = new(BoolStore)
 p.v = true

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-# Example from pycapnp repository.
+# Example from pyzap repository.
 
 from __future__ import print_function
 import argparse
 import socket
 import random
-import capnp
+import zap
 
-import calculator_capnp
+import calculator_zap
 
 
 def read_value(value):
@@ -27,12 +27,12 @@ def evaluate_impl(expression, params=None):
     which = expression.which()
 
     if which == 'literal':
-        return capnp.Promise(expression.literal)
+        return zap.Promise(expression.literal)
     elif which == 'previousResult':
         return read_value(expression.previousResult)
     elif which == 'parameter':
         assert expression.parameter < len(params)
-        return capnp.Promise(params[expression.parameter])
+        return zap.Promise(params[expression.parameter])
     elif which == 'call':
         call = expression.call
         func = call.function
@@ -40,7 +40,7 @@ def evaluate_impl(expression, params=None):
         # Evaluate each parameter.
         paramPromises = [evaluate_impl(param, params) for param in call.params]
 
-        joinedParams = capnp.join_promises(paramPromises)
+        joinedParams = zap.join_promises(paramPromises)
         # When the parameters are complete, call the function.
         ret = (joinedParams
                .then(lambda vals: func.call(vals))
@@ -51,9 +51,9 @@ def evaluate_impl(expression, params=None):
         raise ValueError("Unknown expression type: " + which)
 
 
-class ValueImpl(calculator_capnp.Calculator.Value.Server):
+class ValueImpl(calculator_zap.Calculator.Value.Server):
 
-    "Simple implementation of the Calculator.Value Cap'n Proto interface."
+    "Simple implementation of the Calculator.Value ZAP interface."
 
     def __init__(self, value):
         self.value = value
@@ -62,9 +62,9 @@ class ValueImpl(calculator_capnp.Calculator.Value.Server):
         return self.value
 
 
-class FunctionImpl(calculator_capnp.Calculator.Function.Server):
+class FunctionImpl(calculator_zap.Calculator.Function.Server):
 
-    '''Implementation of the Calculator.Function Cap'n Proto interface, where the
+    '''Implementation of the Calculator.Function ZAP interface, where the
     function is defined by a Calculator.Expression.'''
 
     def __init__(self, paramCount, body):
@@ -82,9 +82,9 @@ class FunctionImpl(calculator_capnp.Calculator.Function.Server):
         return evaluate_impl(self.body, params).then(lambda value: setattr(_context.results, 'value', value))
 
 
-class OperatorImpl(calculator_capnp.Calculator.Function.Server):
+class OperatorImpl(calculator_zap.Calculator.Function.Server):
 
-    '''Implementation of the Calculator.Function Cap'n Proto interface, wrapping
+    '''Implementation of the Calculator.Function ZAP interface, wrapping
     basic binary arithmetic operators.'''
 
     def __init__(self, op):
@@ -107,9 +107,9 @@ class OperatorImpl(calculator_capnp.Calculator.Function.Server):
             raise ValueError('Unknown operator')
 
 
-class CalculatorImpl(calculator_capnp.Calculator.Server):
+class CalculatorImpl(calculator_zap.Calculator.Server):
 
-    "Implementation of the Calculator Cap'n Proto interface."
+    "Implementation of the Calculator ZAP interface."
 
     def evaluate(self, expression, _context, **kwargs):
         return evaluate_impl(expression).then(lambda value: setattr(_context.results, 'value', ValueImpl(value)))
@@ -134,7 +134,7 @@ given address/port ADDRESS may be '*' to bind to all local addresses.\
 def main():
     address = parse_args().address
 
-    server = capnp.TwoPartyServer(address, bootstrap=CalculatorImpl())
+    server = zap.TwoPartyServer(address, bootstrap=CalculatorImpl())
     server.run_forever()
 
 if __name__ == '__main__':

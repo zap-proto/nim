@@ -1,4 +1,4 @@
-import capnp, capnp/gensupport
+import zap, zap/gensupport
 type
   Brand* = ref object
     scopes*: seq[Brand_Scope]

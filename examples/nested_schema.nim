@@ -1,6 +1,6 @@
-import capnp, capnp/gensupport, collections/iface
+import zap, zap/gensupport, collections/iface
 
-# file: examples/nested.capnp
+# file: examples/nested.zap
 from examples/calculator_schema import nil
 
 type

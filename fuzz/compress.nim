@@ -1,7 +1,7 @@
-import capnp
+import zap
 
 let data = stdin.readAll
-let v = decompressCapnp(data)
-let compressed = compressCapnp(v)
-let v1 = decompressCapnp(compressed)
+let v = decompressZap(data)
+let compressed = compressZap(v)
+let v1 = decompressZap(compressed)
 doAssert(v == v1)

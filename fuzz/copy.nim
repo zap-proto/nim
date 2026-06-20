@@ -1,4 +1,4 @@
-import capnp, caprpc/rpcschema, posix, fuzzlib, collections
+import zap, caprpc/rpcschema, posix, fuzzlib, collections
 
 proc main() =
   let packer = newPacker()
@@ -7,7 +7,7 @@ proc main() =
   try:
     let u = newUnpacker(data)
     copyPointer(u, 0, packer, 0)
-  except CapnpFormatError:
+  except ZapFormatError:
     return
 
   let msg1 = packer.buffer

@@ -1,11 +1,11 @@
 [Package]
-name          = "capnp"
+name          = "zap"
 version       = "0.0.3"
 author        = "Michał Zieliński <michal@zielinscy.org.pl>"
-description   = "Cap'n Proto bindings"
+description   = "ZAP bindings"
 license       = "MIT"
-bin           = "capnp/capnpc"
+bin           = "zap/zapc"
 
 [Deps]
-Requires: "nim >= 0.12.0"
+Requires: "nim >= 0.15.2"
 Requires: "collections >= 0.1.2"

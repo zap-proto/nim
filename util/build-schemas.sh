@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
-nim c capnp/capnpc
-capnp compile -onim caprpc/rpc.capnp > caprpc/rpcschema.nim
-capnp compile -onim caprpc/rpc-twoparty.capnp > caprpc/twopartyschema.nim
-capnp compile -onim examples/calculator.capnp > examples/calculator_schema.nim
-capnp compile -onim examples/simplerpc.capnp > examples/simplerpc_schema.nim
-capnp compile -onim examples/nested.capnp > examples/nested_schema.nim
-capnp compile -onim examples/person.capnp > examples/persondef.nim
+nim c zap/zapc
+zap compile -onim caprpc/rpc.zap > caprpc/rpcschema.nim
+zap compile -onim caprpc/rpc-twoparty.zap > caprpc/twopartyschema.nim
+zap compile -onim examples/calculator.zap > examples/calculator_schema.nim
+zap compile -onim examples/simplerpc.zap > examples/simplerpc_schema.nim
+zap compile -onim examples/nested.zap > examples/nested_schema.nim
+zap compile -onim examples/person.zap > examples/persondef.nim

@@ -1,9 +1,9 @@
-when not compiles(isInCapnp): {.error: "do not import this file directly".}
+when not compiles(isInZap): {.error: "do not import this file directly".}
 import endians, strutils, sequtils, typetraits, collections/reflect, collections/lang, collections/iface, collections/pprint
 
-type CapnpFormatError* = object of Exception
+type ZapFormatError* = object of Exception
 
-type CapnpScalar* = uint8 | uint16 | uint32 | uint64 | int8 | int16 | int32 | int64 | float32 | float64 | byte | char | enum
+type ZapScalar* = uint8 | uint16 | uint32 | uint64 | int8 | int16 | int32 | int64 | float32 | float64 | byte | char | enum
 
 proc convertEndian*(size: static[int], dst: pointer, src: pointer, endian=littleEndian) {.inline.} =
   when size == 1:
@@ -32,7 +32,7 @@ proc convertEndian*(size: static[int], dst: pointer, src: pointer, endian=little
 proc pack*[T](v: var string, offset: int, value: T, endian=littleEndian) {.inline.} =
   let minLength = offset + sizeof(T)
   if minLength > v.len or offset > v.len:
-    raise newException(CapnpFormatError, "bad offset")
+    raise newException(ZapFormatError, "bad offset")
 
   convertEndian(sizeof(T), addr v[offset], unsafeAddr value)
 
@@ -43,7 +43,7 @@ proc pack*[T](value: T, endian=littleEndian): string {.inline.} =
 
 proc unpack*[T](v: string, offset: int, t: typedesc[T], endian=littleEndian): T {.inline.} =
   if not (offset < v.len and offset + sizeof(t) <= v.len and offset >= 0):
-    raise newException(CapnpFormatError, "bad offset (offset=$1 len=$2)" % [$offset, $v.len])
+    raise newException(ZapFormatError, "bad offset (offset=$1 len=$2)" % [$offset, $v.len])
 
   convertEndian(sizeof(T), addr result, unsafeAddr v[offset])
 

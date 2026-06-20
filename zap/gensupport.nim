@@ -1,5 +1,5 @@
-# included from capnp/gensupport.nim
-import macros, strutils, capnp, collections, typetraits
+# included from zap/gensupport.nim
+import macros, strutils, zap, collections, typetraits
 export typetraits.name
 
 type PointerFlag* {.pure.} = enum
@@ -12,29 +12,29 @@ template kindMatches(obj, v): typed =
   else:
     obj.kind == v
 
-template capnpUnpackScalarMember*(name, fieldOffset, fieldDefault, condition) =
+template zapUnpackScalarMember*(name, fieldOffset, fieldDefault, condition) =
   if kindMatches(result, condition):
     if fieldOffset + sizeof(name) > dataLength:
       name = fieldDefault
     else:
       name = self.unpackScalar(offset + fieldOffset, type(name), fieldDefault)
 
-template capnpUnpackBoolMember*(name, fieldOffset, fieldDefault, condition) =
+template zapUnpackBoolMember*(name, fieldOffset, fieldDefault, condition) =
   if kindMatches(result, condition):
     if fieldOffset div 8 >= dataLength:
       name = fieldDefault
     else:
       name = self.unpackBool(offset, fieldOffset, defaultValue=fieldDefault)
 
-template capnpPackScalarMember*(name, fieldOffset, fieldDefault, condition) =
+template zapPackScalarMember*(name, fieldOffset, fieldDefault, condition) =
   if kindMatches(value, condition):
     packScalar(scalarBuffer, fieldOffset, name, fieldDefault)
 
-template capnpPackBoolMember*(name, fieldOffset, fieldDefault, condition) =
+template zapPackBoolMember*(name, fieldOffset, fieldDefault, condition) =
   if kindMatches(value, condition):
     packBool(scalarBuffer, fieldOffset, name, fieldDefault)
 
-template capnpUnpackPointerMember*(name, pointerIndex, flag, condition) =
+template zapUnpackPointerMember*(name, pointerIndex, flag, condition) =
   if kindMatches(result, condition):
     name = defaultVal(type(name))
     if pointerIndex < pointerCount:
@@ -45,34 +45,34 @@ template capnpUnpackPointerMember*(name, pointerIndex, flag, condition) =
         else:
           name = unpackPointer(self, realOffset, type(name))
 
-template capnpPreparePack*() =
+template zapPreparePack*() =
   trimWords(scalarBuffer, minDataSize * 8)
   if bufferM != nil:
     bufferM.insertAt(dataOffset, scalarBuffer)
   var pointers {.inject.}: seq[bool] = @[]
 
-template capnpPreparePackPointer*(name, offset, condition) =
+template zapPreparePackPointer*(name, offset, condition) =
   if kindMatches(value, condition):
     if not isNil(name) and pointers.len <= offset:
       pointers.setLen offset + 1
 
-template capnpPreparePackFinish*() =
+template zapPreparePackFinish*() =
   let pointerOffset {.inject.} = dataOffset + scalarBuffer.len
   if bufferM != nil:
     bufferM.insertAt(pointerOffset, newZeroString(pointers.len * 8))
 
-template capnpPackPointer*(name, offset, flag, condition): untyped =
+template zapPackPointer*(name, offset, flag, condition): untyped =
   if bufferM != nil and kindMatches(value, condition) and not isNil(name):
     when flag == PointerFlag.text:
       packText(p, pointerOffset + offset * 8, name)
     else:
       packPointer(p, pointerOffset + offset * 8, name)
 
-template capnpPackFinish*(): untyped =
+template zapPackFinish*(): untyped =
   assert((scalarBuffer.len mod 8) == 0, "")
   return (tuple[dataSize: int, pointerCount: int])((scalarBuffer.len div 8, pointers.len))
 
-template capnpGetPointerField*(name, pointerIndex, condition) =
+template zapGetPointerField*(name, pointerIndex, condition) =
   if pointerIndex == index and kindMatches(self, condition):
     return name.toAnyPointer
 
@@ -85,8 +85,8 @@ proc newComplexDotExpr(a: NimNode, b: NimNode): NimNode {.compileTime.} =
   return newDotExpr(a, b)
 
 proc makeUnpacker(typename: NimNode, scalars: NimNode, pointers: NimNode, bools: NimNode): NimNode {.compiletime.} =
-  # capnpUnpackStructImpl is generic to delay instantation
-  result = parseStmt("""proc capnpUnpackStructImpl*[T: XXX](self: Unpacker, offset: int, dataLength: int, pointerCount: int, typ: typedesc[T]): T =
+  # zapUnpackStructImpl is generic to delay instantation
+  result = parseStmt("""proc zapUnpackStructImpl*[T: XXX](self: Unpacker, offset: int, dataLength: int, pointerCount: int, typ: typedesc[T]): T =
   new(result)""")
 
   result[0][2][0][1] = typeName # replace XXX
@@ -99,25 +99,25 @@ proc makeUnpacker(typename: NimNode, scalars: NimNode, pointers: NimNode, bools:
     let offset = p[1]
     let default = p[2]
     let condition = p[3]
-    body.add(newCall(!"capnpUnpackScalarMember", newComplexDotExpr(resultId, name), offset, default, condition))
+    body.add(newCall(!"zapUnpackScalarMember", newComplexDotExpr(resultId, name), offset, default, condition))
 
   for p in bools:
     let name = p[0]
     let offset = p[1]
     let default = p[2]
     let condition = p[3]
-    body.add(newCall(!"capnpUnpackBoolMember", newComplexDotExpr(resultId, name), offset, default, condition))
+    body.add(newCall(!"zapUnpackBoolMember", newComplexDotExpr(resultId, name), offset, default, condition))
 
   for p in pointers:
     let name = p[0]
     let offset = p[1]
     let flag = p[2]
     let condition = p[3]
-    body.add(newCall(!"capnpUnpackPointerMember", newComplexDotExpr(resultId, name), offset, flag, condition))
+    body.add(newCall(!"zapUnpackPointerMember", newComplexDotExpr(resultId, name), offset, flag, condition))
 
 proc makePacker(typename: NimNode, scalars: NimNode, pointers: NimNode, bools: NimNode): NimNode {.compiletime.} =
   # bufferM should be named buffer, but compiler manages to confuse it with buffer proc in unpack
-  result = parseStmt("""proc capnpPackStructImpl*[T: XXX](p: Packer, bufferM: var string, value: T, dataOffset: int, minDataSize=0): tuple[dataSize: int, pointerCount: int] =
+  result = parseStmt("""proc zapPackStructImpl*[T: XXX](p: Packer, bufferM: var string, value: T, dataOffset: int, minDataSize=0): tuple[dataSize: int, pointerCount: int] =
   var scalarBuffer = newZeroString(max(@[int(0)]))""")
 
   result[0][2][0][1] = typeName # replace XXX
@@ -128,7 +128,7 @@ proc makePacker(typename: NimNode, scalars: NimNode, pointers: NimNode, bools: N
   for p in scalars:
     let name = p[0]
     let offset = p[1]
-    sizesList.add(newCall(newIdentNode($"+"),  newCall(newIdentNode($"capnpSizeof"), newComplexDotExpr(valueId, name)), offset))
+    sizesList.add(newCall(newIdentNode($"+"),  newCall(newIdentNode($"zapSizeof"), newComplexDotExpr(valueId, name)), offset))
 
   for p in bools:
     let offset = p[1]
@@ -140,7 +140,7 @@ proc makePacker(typename: NimNode, scalars: NimNode, pointers: NimNode, bools: N
     let default = p[2]
     let condition = p[3]
 
-    body.add(newCall(!"capnpPackScalarMember", newComplexDotExpr(valueId, name), offset, default, condition))
+    body.add(newCall(!"zapPackScalarMember", newComplexDotExpr(valueId, name), offset, default, condition))
 
   for p in bools:
     let name = p[0]
@@ -148,18 +148,18 @@ proc makePacker(typename: NimNode, scalars: NimNode, pointers: NimNode, bools: N
     let default = p[2]
     let condition = p[3]
 
-    body.add(newCall(!"capnpPackBoolMember", newComplexDotExpr(valueId, name), offset, default, condition))
+    body.add(newCall(!"zapPackBoolMember", newComplexDotExpr(valueId, name), offset, default, condition))
 
-  body.add(newCall(!"capnpPreparePack"))
+  body.add(newCall(!"zapPreparePack"))
 
   for p in pointers:
     let name = p[0]
     let offset = p[1]
     let condition = p[3]
 
-    body.add(newCall(!"capnpPreparePackPointer", newComplexDotExpr(valueId, name), offset, condition))
+    body.add(newCall(!"zapPreparePackPointer", newComplexDotExpr(valueId, name), offset, condition))
 
-  body.add(newCall(!"capnpPreparePackFinish"))
+  body.add(newCall(!"zapPreparePackFinish"))
 
   for p in pointers:
     let name = p[0]
@@ -167,9 +167,9 @@ proc makePacker(typename: NimNode, scalars: NimNode, pointers: NimNode, bools: N
     let flag = p[2]
     let condition = p[3]
 
-    body.add(newCall(!"capnpPackPointer", newComplexDotExpr(valueId, name), offset, flag, condition))
+    body.add(newCall(!"zapPackPointer", newComplexDotExpr(valueId, name), offset, flag, condition))
 
-  body.add(parseStmt("capnpPackFinish()"))
+  body.add(parseStmt("zapPackFinish()"))
 
 proc makeGetPointerField(typename: NimNode, pointers: NimNode): NimNode {.compiletime.} =
   result = parseStmt("""proc getPointerField*[T: XXX](self: T, index: int): AnyPointer =
@@ -183,7 +183,7 @@ proc makeGetPointerField(typename: NimNode, pointers: NimNode): NimNode {.compil
     let offset = p[1]
     let condition = p[3]
 
-    body.add(newCall(!"capnpGetPointerField", newComplexDotExpr(newIdentNode("self"), name), offset, condition))
+    body.add(newCall(!"zapGetPointerField", newComplexDotExpr(newIdentNode("self"), name), offset, condition))
 
 macro makeStructCoders*(typeName, scalars, pointers, bitfields): untyped =
   newNimNode(nnkStmtList)

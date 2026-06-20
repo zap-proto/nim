@@ -1,5 +1,5 @@
-# included from capnp.nim
-when not compiles(isInCapnp): {.error: "do not import this file directly".}
+# included from zap.nim
+when not compiles(isInZap): {.error: "do not import this file directly".}
 
 type
   BitSeq* = object
@@ -9,7 +9,7 @@ type
 proc newBitSeq(s: string, offset: int, itemCount: int): BitSeq =
   let bytes = int((itemCount + 7) / 8)
   if offset >= s.len or offset + bytes >= s.len:
-    raise newException(CapnpFormatError, "bitseq too long")
+    raise newException(ZapFormatError, "bitseq too long")
   result.length = itemCount
   result.body = s[offset..offset + bytes]
 

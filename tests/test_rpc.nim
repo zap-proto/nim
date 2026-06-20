@@ -1,4 +1,4 @@
-import reactor, capnp
+import reactor, zap
 import caprpc/msgstream, caprpc/rpcschema, caprpc/twoparty
 
 proc main() {.async.} =

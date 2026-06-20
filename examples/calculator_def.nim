@@ -1,4 +1,4 @@
-import capnp, capnp/gensupport, collections/iface
+import zap, zap/gensupport, collections/iface
 
 import reactor, caprpc, caprpc/rpcgensupport
 type

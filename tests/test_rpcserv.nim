@@ -1,4 +1,4 @@
-import reactor, capnp
+import reactor, zap
 import caprpc/msgstream
 import caprpc/rpcschema
 

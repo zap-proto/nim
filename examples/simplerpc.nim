@@ -1,4 +1,4 @@
-import reactor, capnp, caprpc, simplerpc_schema, collections/pprint, collections/iface
+import reactor, zap, caprpc, simplerpc_schema, collections/pprint, collections/iface
 
 proc main() {.async.} =
   let sys = newTwoPartyClient(await connectTcp("127.0.0.1:6789")) # localhost:6789

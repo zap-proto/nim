@@ -1,4 +1,4 @@
-import capnp, caprpc/rpcschema, posix, fuzzlib, collections
+import zap, caprpc/rpcschema, posix, fuzzlib, collections
 
 proc main() =
   try:
@@ -18,7 +18,7 @@ proc main() =
       echo msg1.pprint
 
     assert(dataPacked == dataPacked2)
-  except CapnpFormatError:
+  except ZapFormatError:
     discard
 
 runFuzz()

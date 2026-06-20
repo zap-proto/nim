@@ -1,4 +1,4 @@
-# included from capnp.nim
+# included from zap.nim
 type
   AnyPointer* = distinct RootRef
 
@@ -19,19 +19,19 @@ type
 
 type SomeInt = int8|int16|int32|int64|uint8|uint16|uint32|uint64
 
-proc capnpSizeofT*[T: SomeInt|float32|float64](t: typedesc[T]): int =
+proc zapSizeofT*[T: SomeInt|float32|float64](t: typedesc[T]): int =
   sizeof(T)
 
-proc capnpSizeofT*[T: enum](t: typedesc[T]): int =
+proc zapSizeofT*[T: enum](t: typedesc[T]): int =
   sizeof(uint16)
 
-template capnpSizeof*(e): typed =
-  capnpSizeofT(type(e))
+template zapSizeof*(e): typed =
+  zapSizeofT(type(e))
 
 proc isNil*(a: CapServer): bool =
   return a.Interface.vtable == nil
 
-proc decompressCapnp*(a: string): string =
+proc decompressZap*(a: string): string =
   result = ""
   var i = 0
   while i < a.len:
@@ -55,7 +55,7 @@ proc decompressCapnp*(a: string): string =
         result.add(a[i + 1..<(i + 1 + verbatimWords * 8)])
         i += verbatimWords * 8 + 1
 
-proc compressCapnp*(a: string): string =
+proc compressZap*(a: string): string =
   # TODO
   assert a.len mod 8 == 0
 

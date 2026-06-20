@@ -1,4 +1,4 @@
-import capnp/schema, capnp, tables, hashes, collections/iterate, collections, strutils, tables
+import zap/schema, zap, tables, hashes, collections/iterate, collections, strutils, tables
 
 type
   Generator* = ref object
@@ -401,7 +401,7 @@ proc generateCode*(req: CodeGeneratorRequest) =
     if id in self.typeNames:
       self.generateType(id)
 
-  echo "import capnp, capnp/gensupport, collections/iface\n"
+  echo "import zap, zap/gensupport, collections/iface\n"
   if self.enableRpc:
     echo "import reactor, caprpc, caprpc/rpcgensupport"
   echo header

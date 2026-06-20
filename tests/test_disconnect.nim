@@ -1,4 +1,4 @@
-import caprpc, capnp, reactor
+import caprpc, zap, reactor
 
 type MyCap = ref object of RootRef
 

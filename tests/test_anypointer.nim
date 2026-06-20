@@ -1,4 +1,4 @@
-import examples/persondef, capnp, collections
+import examples/persondef, zap, collections
 
 let p = new(Person)
 p.name = "HHHHHHHHHHHHH"

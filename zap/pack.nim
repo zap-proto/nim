@@ -1,5 +1,5 @@
-# included from capnp.nim
-when not compiles(isInCapnp): {.error: "do not import this file directly".}
+# included from zap.nim
+when not compiles(isInZap): {.error: "do not import this file directly".}
 import collections
 
 type Packer* = ref object
@@ -88,14 +88,14 @@ proc packCompositeList[R](p: Packer, offset: int, value: seq[R], typ: typedesc[R
     packNil(p, offset)
     return
 
-  mixin capnpPackStructImpl
+  mixin zapPackStructImpl
 
   var dataSize = 0
   var pointerCount = 0
 
   for item in value:
     var fakeBuffer: string = nil
-    let info = capnpPackStructImpl(p, fakeBuffer, item, 0)
+    let info = zapPackStructImpl(p, fakeBuffer, item, 0)
     dataSize = max(dataSize, info.dataSize)
     pointerCount = max(pointerCount, info.pointerCount)
 
@@ -108,7 +108,7 @@ proc packCompositeList[R](p: Packer, offset: int, value: seq[R], typ: typedesc[R
   p.buffer.add newZeroString(structLength * value.len)
 
   for i, item in value:
-    discard capnpPackStructImpl(p, p.buffer, item, dataOffset + i * structLength, minDataSize=dataSize)
+    discard zapPackStructImpl(p, p.buffer, item, dataOffset + i * structLength, minDataSize=dataSize)
 
   let deltaOffset = (bodyOffset - offset - 8) div 8
   pack(p.buffer, offset,
@@ -126,7 +126,7 @@ proc packCompositeList[R](p: Packer, offset: int, value: seq[R], typ: typedesc[R
 proc packListImpl[T, R](p: Packer, offset: int, value: T, typ: typedesc[R]) =
   if value.isNil:
     return
-  when typ is CapnpScalar:
+  when typ is ZapScalar:
     packScalarList(p, offset, value, typ)
   elif typ is (seq|string) or compiles(toCapServer(value[0])):
     packPointerList(p, offset, value, typ)
@@ -140,10 +140,10 @@ proc packList*(p: Packer, offset: int, value: string) =
   packListImpl(p, offset, value, byte)
 
 proc packStruct[T](p: Packer, offset: int, value: T) =
-  mixin capnpPackStructImpl
+  mixin zapPackStructImpl
 
   let dataOffset = p.buffer.len
-  let info = capnpPackStructImpl(p, p.buffer, value, dataOffset)
+  let info = zapPackStructImpl(p, p.buffer, value, dataOffset)
   let deltaOffset = (dataOffset - offset - 8) div 8
   pack(p.buffer, offset,
        (deltaOffset.uint64 shl 2) or

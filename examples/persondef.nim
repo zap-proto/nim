@@ -1,6 +1,6 @@
-import capnp, capnp/gensupport, collections/iface
+import zap, zap/gensupport, collections/iface
 
-# file: examples/person.capnp
+# file: examples/person.zap
 
 type
   Person* = ref object

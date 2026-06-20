@@ -1,17 +1,17 @@
 ## Sending/receiving capn'p messages over stream in a same format as C++ RPC implementation.
-import capnp, reactor, collections
+import zap, reactor, collections
 
 proc readSegments*(stream: Input[byte]): Future[string] {.async.} =
   let segmentCount = int(await stream.readItem(uint32, littleEndian))
   if segmentCount > 512:
-    raise newException(CapnpFormatError, "too many segments")
+    raise newException(ZapFormatError, "too many segments")
 
-  var s = capnp.pack(segmentCount.uint32, littleEndian)
+  var s = zap.pack(segmentCount.uint32, littleEndian)
 
   var dataLength = 0
   for i in 0..segmentCount:
     let words = int(await stream.readItem(uint32, littleEndian))
-    s &= capnp.pack(words.uint32, littleEndian)
+    s &= zap.pack(words.uint32, littleEndian)
     # FIXME: can this lead to DoS due to abort during overflow?
     dataLength += words * 8
 
@@ -19,8 +19,8 @@ proc readSegments*(stream: Input[byte]): Future[string] {.async.} =
     discard (await stream.readItem(uint32, littleEndian))
     s &= "\0\0\0\0"
 
-  if dataLength > capnp.bufferLimit:
-    raise newException(CapnpFormatError, "message too long")
+  if dataLength > zap.bufferLimit:
+    raise newException(ZapFormatError, "message too long")
 
   s &= await stream.read(dataLength)
   when defined(caprpcPrintMessages):
@@ -36,10 +36,10 @@ proc wrapByteInput*[T](stream: Input[byte], t: typedesc[T]): Input[T] {.asyncite
 
 proc pipeMsg[T](stream: Input[T], provider: ByteOutput) {.async.} =
   asyncFor msg in stream:
-    let serialized = capnp.packPointer(msg)
+    let serialized = zap.packPointer(msg)
     let lengthInWords = len(serialized) div 8
     assert len(serialized) mod 8 == 0
-    let data = capnp.pack(0.uint32, littleEndian) & capnp.pack(lengthInWords.uint32, littleEndian) & serialized
+    let data = zap.pack(0.uint32, littleEndian) & zap.pack(lengthInWords.uint32, littleEndian) & serialized
     # echo "send ", data.encodeHex
     await provider.write(data)
 

@@ -1,4 +1,4 @@
-import capnp/util, capnp/unpack, capnp/pack, capnp/gensupport
+import zap/util, zap/unpack, zap/pack, zap/gensupport
 type
   BoolStore* = ref object
     v*: bool

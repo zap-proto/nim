@@ -1,4 +1,4 @@
-import examples/persondef, capnp, collections, examples/calculator_schema, caprpc
+import examples/persondef, zap, collections, examples/calculator_schema, caprpc
 
 let expr = Calculator_Expression(kind: Calculator_ExpressionKind.call,
                                  function: Calculator_Function.createFromCap(nothingImplemented),

@@ -1,5 +1,5 @@
-import capnp
-export capnp
+import zap
+export zap
 
 import collections/iface
 export iface

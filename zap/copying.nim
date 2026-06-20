@@ -1,4 +1,4 @@
-# included from capnp.nim
+# included from zap.nim
 
 type
   AnyPointerKind {.pure.} = enum
@@ -7,7 +7,7 @@ type
     cap
 
   AnyPointerImpl* = ref object of RootObj
-    # AnyPointer can be created in two ways: either by unpacking Capnp object or by wrapping a Nim one.
+    # AnyPointer can be created in two ways: either by unpacking Zap object or by wrapping a Nim one.
     case kind: AnyPointerKind
     of AnyPointerKind.unpacker:
       unpacker: Unpacker
@@ -153,7 +153,7 @@ proc copyList(src: Unpacker, offset: int, dst: Packer, targetOffset: int) =
   assert dst.buffer.len mod 8 == 0
 
   if bodyOffset < 0 or bodyOffset > src.buffer.len:
-    raise newException(CapnpFormatError, "invalid offset")
+    raise newException(ZapFormatError, "invalid offset")
 
   case itemSizeTag:
   of {1,2,3,4,5}:
@@ -165,10 +165,10 @@ proc copyList(src: Unpacker, offset: int, dst: Packer, targetOffset: int) =
     of 3: dataSize = itemNumber * 2
     of 4: dataSize = itemNumber * 4
     of 5: dataSize = itemNumber * 8
-    else: raise newException(CapnpFormatError, "invalid size tag")
+    else: raise newException(ZapFormatError, "invalid size tag")
 
     if dataSize > src.buffer.len - bodyOffset:
-      raise newException(CapnpFormatError, "index error")
+      raise newException(ZapFormatError, "index error")
 
     src.decreaseLimit(dataSize)
     #echo offset, " -> ", targetOffset, " copyarray ", dst.buffer.len, " " , bodyOffset, " ", dataSize
@@ -177,7 +177,7 @@ proc copyList(src: Unpacker, offset: int, dst: Packer, targetOffset: int) =
   of 6:
     let dataSize = itemNumber * 8
     if dataSize > src.buffer.len - bodyOffset:
-      raise newException(CapnpFormatError, "index error")
+      raise newException(ZapFormatError, "index error")
 
     src.decreaseLimit(dataSize)
     dst.buffer &= newZeroString(dataSize)
@@ -187,21 +187,21 @@ proc copyList(src: Unpacker, offset: int, dst: Packer, targetOffset: int) =
                   dst, targetBodyOffset + pointerI * 8)
   of 7:
     if bodyOffset + 8 > src.buffer.len:
-      raise newException(CapnpFormatError, "index error")
+      raise newException(ZapFormatError, "index error")
 
     let info = src.parseStruct(bodyOffset, parseOffset=false)
     let itemCount = info.offset
     let itemSize = (info.dataLength + 8 * info.pointerCount)
 
     if itemSize < 0 or itemCount < 0:
-      raise newException(CapnpFormatError, "invalid item size")
+      raise newException(ZapFormatError, "invalid item size")
 
     src.decreaseLimit(itemSize)
     src.decreaseLimit(itemCount)
     src.decreaseLimit(itemSize * itemCount)
 
     if bodyOffset + 8 + itemSize * itemCount > src.buffer.len:
-      raise newException(CapnpFormatError, "index error")
+      raise newException(ZapFormatError, "index error")
 
     dst.buffer &= newZeroString(8 + itemSize * itemCount)
     pack(dst.buffer, targetBodyOffset, unpack(src.buffer, bodyOffset, uint64))
@@ -212,7 +212,7 @@ proc copyList(src: Unpacker, offset: int, dst: Packer, targetOffset: int) =
                       dst, targetBodyOffset + 8 + itemSize * i)
 
   else:
-    raise newException(CapnpFormatError, "invalid list type")
+    raise newException(ZapFormatError, "invalid list type")
 
   let relTargetBodyOffset = targetBodyOffset - targetOffset - 8
   pack(dst.buffer, targetOffset,
@@ -233,13 +233,13 @@ proc copyPointer*(src: Unpacker, offset: int, dst: Packer, targetOffset: int) =
   elif kind == 1:
     copyList(src, offset, dst, targetOffset)
   elif kind == 2:
-    raise newException(CapnpFormatError, "inter-segment pointers not supported for copying")
+    raise newException(ZapFormatError, "inter-segment pointers not supported for copying")
   elif kind == 3:
     # other pointer
     if src.customUnpacker:
       let pkind = extractBits(pointer, 3, bits=29)
       if pkind != 0:
-        raise newException(CapnpFormatError, "found unknown 'other' pointer")
+        raise newException(ZapFormatError, "found unknown 'other' pointer")
 
       let capId = extractBits(pointer, 32, bits=32)
       let newCapVal = dst.capToIndex(src.getCap(RawCapValue(kind: rawCapNumber, number: capId)))

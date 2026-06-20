@@ -1,5 +1,5 @@
 ## Implements the core of the RPC mechanism.
-import caprpc/common, caprpc/util, caprpc/rpcschema, tables, collections/weaktable, collections/weakref, reactor, capnp, collections/iface, caprpc/util, collections/iterate, collections, typetraits
+import caprpc/common, caprpc/util, caprpc/rpcschema, tables, collections/weaktable, collections/weakref, reactor, zap, collections/iface, caprpc/util, collections/iterate, collections, typetraits
 
 type
   RpcSystem* = ref object

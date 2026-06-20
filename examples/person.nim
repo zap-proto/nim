@@ -1,4 +1,4 @@
-import persondef, capnp
+import persondef, zap
 
 let p = new(Person)
 let d = new(Date)

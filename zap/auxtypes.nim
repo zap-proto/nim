@@ -1,4 +1,4 @@
-import capnp, capnp/gensupport
+import zap, zap/gensupport
 
 type
   Pair* = ref object

@@ -1,6 +1,6 @@
-import capnp, capnp/gensupport, collections/iface
+import zap, zap/gensupport, collections/iface
 
-# file: caprpc/rpc-twoparty.capnp
+# file: caprpc/rpc-twoparty.zap
 
 type
   Side* {.pure.} = enum

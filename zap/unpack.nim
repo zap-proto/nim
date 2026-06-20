@@ -1,5 +1,5 @@
-# included from capnp.nim
-when not compiles(isInCapnp): {.error: "do not import this file directly".}
+# included from zap.nim
+when not compiles(isInZap): {.error: "do not import this file directly".}
 import collections
 
 const
@@ -24,9 +24,9 @@ proc decreaseLimit(self: Unpacker, size: int) =
   self.stackLimit -= 1
   self.readLimit -= size
   if self.stackLimit < 0:
-    raise newException(CapnpFormatError, "recursion (stack) limit reached")
+    raise newException(ZapFormatError, "recursion (stack) limit reached")
   if self.readLimit < 0:
-    raise newException(CapnpFormatError, "recursion (read) limit reached")
+    raise newException(ZapFormatError, "recursion (read) limit reached")
 
 proc newUnpacker*(segments: seq[string]): Unpacker =
   new(result)
@@ -35,7 +35,7 @@ proc newUnpacker*(segments: seq[string]): Unpacker =
   result.segments = segments
   result.currentSegment = 0
   result.getCap = proc(val: RawCapValue): CapServer =
-                      raise newException(CapnpFormatError, "this unpacker doesn't support capabilities")
+                      raise newException(ZapFormatError, "this unpacker doesn't support capabilities")
 
 proc buffer*(self: Unpacker): var string {.inline.} =
   self.segments[self.currentSegment]
@@ -53,7 +53,7 @@ proc parseMultiSegment(buffer: string): seq[string] =
   result = @[]
   for length in lengths:
     if length < 0 or length > bufferLimit or (index + length) > buffer.len:
-      raise newException(CapnpFormatError, "truncated multisegment")
+      raise newException(ZapFormatError, "truncated multisegment")
     var s = buffer[index..<(index + length)]
     s.shallow
     result.add s
@@ -77,7 +77,7 @@ proc unpackScalar*(self: Unpacker, offset: int, typ: typedesc[float64], defaultV
 proc unpackScalar*[T: enum](self: Unpacker, offset: int, typ: typedesc[T], defaultValue: T=T.low): T =
   let val = self.unpackScalar(offset, uint16, defaultValue.uint16)
   if val < low(T).uint16 or val > high(T).uint16:
-    raise newException(CapnpFormatError, "value out of range")
+    raise newException(ZapFormatError, "value out of range")
   return val.T
 
 proc unpackBool*(self: Unpacker, baseOffset: int, bitOffset: int, defaultValue: bool): bool =
@@ -97,7 +97,7 @@ assert unpackOffsetSigned(1073741823) == -1
 proc unpackInterSegment[T](self: Unpacker, pointer: uint64, typ: typedesc[T]): T =
   let typeTag = extractBits(pointer, 0, bits=2)
   if typeTag != 2:
-    raise newException(CapnpFormatError, "expected intersegment pointer")
+    raise newException(ZapFormatError, "expected intersegment pointer")
 
   let oneWord = extractBits(pointer, 2, bits=1) == 0
   let offset = extractBits(pointer, 3, bits=29) * 8
@@ -105,7 +105,7 @@ proc unpackInterSegment[T](self: Unpacker, pointer: uint64, typ: typedesc[T]): T
   let oldSegment = self.currentSegment
 
   if newSegment >= self.segments.len or newSegment < 0:
-    raise newException(CapnpFormatError, "invalid intersegment pointer target segment")
+    raise newException(ZapFormatError, "invalid intersegment pointer target segment")
 
   self.currentSegment = newSegment
   defer: self.currentSegment = oldSegment
@@ -114,27 +114,27 @@ proc unpackInterSegment[T](self: Unpacker, pointer: uint64, typ: typedesc[T]): T
     mixin unpackPointer
 
     if offset >= self.buffer.len or offset < 0:
-      raise newException(CapnpFormatError, "invalid intersegment pointer")
+      raise newException(ZapFormatError, "invalid intersegment pointer")
 
     return unpackPointer(self, offset, typ)
   else:
-    raise newException(CapnpFormatError, "two-word pointers not implemented")
+    raise newException(ZapFormatError, "two-word pointers not implemented")
 
 proc unpackPointerList[T](self: Unpacker, typ: typedesc[T], target: typedesc[seq[T]], bodyOffset: int, itemSizeTag: int, itemNumber: int): seq[T] =
   mixin unpackPointer
 
   if itemSizeTag != 6:
-    raise newException(CapnpFormatError, "bad item size")
+    raise newException(ZapFormatError, "bad item size")
 
   var target = newSeq[T](itemNumber)
 
   if itemNumber > bufferLimit or itemNumber * 8 > bufferLimit:
-    raise newException(CapnpFormatError, "list too big")
+    raise newException(ZapFormatError, "list too big")
 
   let listSize = itemNumber * 8
 
   if bodyOffset < 0:
-    raise newException(CapnpFormatError, "index error")
+    raise newException(ZapFormatError, "index error")
 
   deferRestoreStackLimit
   self.decreaseLimit(listSize)
@@ -153,11 +153,11 @@ proc unpackScalarList[T, Target](self: Unpacker, typ: typedesc[T], target: typed
   of 4: itemSize = 4
   of 5: itemSize = 8
   of 7:
-    raise newException(CapnpFormatError, "expected scalar list, found list of composites (maybe you need to update your schema?)")
-  else: raise newException(CapnpFormatError, "bad item size: " & ($itemSizeTag))
+    raise newException(ZapFormatError, "expected scalar list, found list of composites (maybe you need to update your schema?)")
+  else: raise newException(ZapFormatError, "bad item size: " & ($itemSizeTag))
 
   if sizeof(T) != itemSize:
-    raise newException(CapnpFormatError, "bad item size")
+    raise newException(ZapFormatError, "bad item size")
 
   var target: Target
 
@@ -168,12 +168,12 @@ proc unpackScalarList[T, Target](self: Unpacker, typ: typedesc[T], target: typed
     target = newString(itemNumber)
 
   if itemNumber > bufferLimit or itemNumber * sizeof(T) > bufferLimit:
-    raise newException(CapnpFormatError, "list too big")
+    raise newException(ZapFormatError, "list too big")
 
   let listSize = itemNumber * sizeof(T)
 
   if bodyOffset < 0 or listSize < 0 or bodyOffset > self.buffer.len or bodyOffset + listSize > self.buffer.len:
-    raise newException(CapnpFormatError, "index error")
+    raise newException(ZapFormatError, "index error")
 
   var buffer = self.buffer
   if listSize > 0:
@@ -190,10 +190,10 @@ proc unpackScalarList[T, Target](self: Unpacker, typ: typedesc[T], target: typed
 
 proc unpackCompositeList[T](self: Unpacker, typ: typedesc[T], bodyOffset: int, itemSizeTag: int, wordCount: int): seq[T] =
   if itemSizeTag != 7:
-    raise newException(CapnpFormatError, "expected composite list, got scalar list")
+    raise newException(ZapFormatError, "expected composite list, got scalar list")
 
   if wordCount > bufferLimit:
-    raise newException(CapnpFormatError, "composite list too big")
+    raise newException(ZapFormatError, "composite list too big")
 
   deferRestoreStackLimit
   self.decreaseLimit(wordCount * 8)
@@ -203,20 +203,20 @@ proc unpackCompositeList[T](self: Unpacker, typ: typedesc[T], bodyOffset: int, i
   let itemSize = (s.dataLength + 8 * s.pointerCount)
 
   if itemCount > bufferLimit or itemSize > bufferLimit:
-    raise newException(CapnpFormatError, "composite list too big")
+    raise newException(ZapFormatError, "composite list too big")
 
   if itemSize * itemCount != wordCount * 8 or (itemSize != 0 and ((wordCount * 8 div itemSize) != itemCount)):
-    raise newException(CapnpFormatError, "composite list size mismatch")
+    raise newException(ZapFormatError, "composite list size mismatch")
 
   if bodyOffset + 8 + itemSize * itemCount > self.buffer.len:
-    raise newException(CapnpFormatError, "index error")
+    raise newException(ZapFormatError, "index error")
 
-  mixin capnpUnpackStructImpl
+  mixin zapUnpackStructImpl
   result = newSeq[T](itemCount)
 
   for i in 0..<itemCount:
     let itemOffset = bodyOffset + 8 + itemSize * i
-    result[i] = capnpUnpackStructImpl(self, itemOffset, s.dataLength, s.pointerCount, typ)
+    result[i] = zapUnpackStructImpl(self, itemOffset, s.dataLength, s.pointerCount, typ)
 
 proc unpackListImpl[T, Target](self: Unpacker, offset: int, typ: typedesc[T], target: typedesc[Target]): Target =
   let buffer = self.buffer
@@ -229,7 +229,7 @@ proc unpackListImpl[T, Target](self: Unpacker, offset: int, typ: typedesc[T], ta
     return nil
 
   if typeTag != 1:
-    raise newException(CapnpFormatError, "expected list, found " & $typeTag)
+    raise newException(ZapFormatError, "expected list, found " & $typeTag)
 
   let bodyOffset = extractBits(pointer, 2, bits=30).unpackOffsetSigned * 8 + offset + 8
   let itemSizeTag = extractBits(pointer, 32, bits=3)
@@ -237,10 +237,10 @@ proc unpackListImpl[T, Target](self: Unpacker, offset: int, typ: typedesc[T], ta
 
   when typ is bool: # bitseq
     if itemSizeTag != 1:
-      raise newException(CapnpFormatError, "expected bitseq")
+      raise newException(ZapFormatError, "expected bitseq")
     return newBitSeq(buffer, offset, itemSize) # FIXME
 
-  when typ is CapnpScalar:
+  when typ is ZapScalar:
     return unpackScalarList(self, typ, target, bodyOffset, itemSizeTag, itemNumber)
   elif typ is seq|string or typ is SomeInterface:
     return unpackPointerList(self, typ, target, bodyOffset, itemSizeTag, itemNumber)
@@ -261,36 +261,36 @@ proc parseStruct(self: Unpacker, offset: int, parseOffset=true): tuple[offset: i
     return (0, 0, 0)
 
   if typ != 0:
-    raise newException(CapnpFormatError, "expected struct, found " & $typ)
+    raise newException(ZapFormatError, "expected struct, found " & $typ)
 
   result.offset = extractBits(pointer, 2, bits=30).unpackOffsetSigned
   let dataWords = extractBits(pointer, 32, bits=16)
   if dataWords > int(bufferLimit / 8):
-    raise newException(CapnpFormatError, "struct too big")
+    raise newException(ZapFormatError, "struct too big")
 
   result.dataLength = dataWords * 8
   result.pointerCount = extractBits(pointer, 48, bits=16)
 
   if result.pointerCount > bufferLimit:
-    raise newException(CapnpFormatError, "struct too big")
+    raise newException(ZapFormatError, "struct too big")
 
   if parseOffset:
     result.offset *= 8
     result.offset += offset + 8
 
     if result.offset < 0 or result.offset > self.buffer.len or result.offset + result.dataLength > self.buffer.len or result.offset + result.dataLength + result.pointerCount * 8 > self.buffer.len:
-      raise newException(CapnpFormatError, "index error")
+      raise newException(ZapFormatError, "index error")
 
 proc unpackStruct[T](self: Unpacker, offset: int, typ: typedesc[T]): T =
   let pointer = unpack(self.buffer, offset, uint64)
   if extractBits(pointer, 0, bits=2) == 2:
     return unpackInterSegment(self, pointer, T)
 
-  mixin capnpUnpackStructImpl
+  mixin zapUnpackStructImpl
   let s = parseStruct(self, offset)
   deferRestoreStackLimit
   self.decreaseLimit(s.pointerCount * 8 + s.dataLength)
-  return capnpUnpackStructImpl(self, s.offset, s.dataLength, s.pointerCount, typ)
+  return zapUnpackStructImpl(self, s.offset, s.dataLength, s.pointerCount, typ)
 
 proc getPointerFieldOffset*(self: Unpacker, offset: int, field: int): int =
   let pointer = unpack(self.buffer, offset, uint64)
@@ -299,7 +299,7 @@ proc getPointerFieldOffset*(self: Unpacker, offset: int, field: int): int =
 
   let s = parseStruct(self, offset)
   if field >= s.pointerCount:
-    raise newException(CapnpFormatError, "field doesn't exist")
+    raise newException(ZapFormatError, "field doesn't exist")
 
   return s.offset + field * 8
 
@@ -312,11 +312,11 @@ proc unpackCap[T](self: Unpacker, offset: int, typ: typedesc[T]): T =
     return createFromCap(T, self.getCap(RawCapValue(kind: rawCapNumber, number: -1)))
 
   if extractBits(pointer, 0, bits=2) != 3:
-    raise newException(CapnpFormatError, "expected capability, found something else ($1)" % [$extractBits(pointer, 0, bits=2)])
+    raise newException(ZapFormatError, "expected capability, found something else ($1)" % [$extractBits(pointer, 0, bits=2)])
 
   let kind = extractBits(pointer, 3, bits=29)
   if kind != 0:
-    raise newException(CapnpFormatError, "found unknown 'other' pointer")
+    raise newException(ZapFormatError, "found unknown 'other' pointer")
 
   let capId = extractBits(pointer, 32, bits=32)
   return createFromCap(T, self.getCap(RawCapValue(kind: rawCapNumber, number: capId)))
@@ -338,7 +338,7 @@ proc unpackPointer*[T](self: Unpacker, offset: int, typ: typedesc[T]): T =
 proc postprocessText(t: string): string =
   if t == nil: return nil
   if t.len == 0 or t[^1] != '\0':
-    raise newException(CapnpFormatError, "text without trailing zero")
+    raise newException(ZapFormatError, "text without trailing zero")
   return t[0..(t.len-2)]
 
 proc postprocessText[T](t: seq[T]): seq[T] =
