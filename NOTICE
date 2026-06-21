@@ -1,0 +1,10 @@
+nim — part of the ZAP Protocol (github.com/zap-proto)
+
+This product includes software developed by the capnp.nim project:
+  capnp.nim — https://github.com/zielmicha/capnp.nim
+  Copyright (c) 2015-2016 Michał Zieliński
+  Licensed under the MIT License (see LICENSE).
+
+ZAP is a derivative work: a brand-neutral fork of capnp.nim providing Nim
+bindings for the ZAP serialization scheme and RPC protocol.
+Modifications Copyright (c) 2025 Lux Industries Inc.
