@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # The ZAP Nim port targets the Nim 0.18.x toolchain era (see TODO.md).
+    # The official nimlang/nim:0.18.0 image pins that compiler + its nimble
+    # deterministically, so the build matches exactly what is verified
+    # locally. setup-nim-action's binaries do not reach back to 0.18.x.
+    container: nimlang/nim:0.18.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          nim --version
+          nimble --version || true
+
+      - name: Install dependencies
+        # Resolves collections#v0.3.4 from zap.nimble (git-ref pin; the 0.18
+        # nimble predates `==` version ranges).
+        run: nimble install -dy
+
+      - name: Run serialization test suite
+        # `nimble test` builds + runs pack/unpack, compress, AnyPointer and
+        # single-segment copying round-trips, then compiles the zapc code
+        # generator. This is the production-ready serialization layer.
+        run: nimble test
